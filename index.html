@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>지자체 데이터 통합 플랫폼</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f0f2f5;
+            color: #1a1a2e;
+        }
+
+        /* 헤더 */
+        .header {
+            background: linear-gradient(135deg, #0f4c81 0%, #1a73b5 100%);
+            color: white;
+            padding: 32px 24px 24px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+        .header p {
+            font-size: 14px;
+            opacity: 0.85;
+        }
+
+        /* 필터 영역 */
+        .filter-bar {
+            max-width: 1100px;
+            margin: -20px auto 0;
+            padding: 20px 24px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+            position: relative;
+            z-index: 10;
+        }
+        .filter-bar label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #555;
+            margin-right: 4px;
+        }
+        .filter-bar select, .filter-bar input {
+            padding: 10px 14px;
+            border: 1.5px solid #ddd;
+            border-radius: 10px;
+            font-size: 14px;
+            background: #fafafa;
+            transition: border-color 0.2s;
+            outline: none;
+        }
+        .filter-bar select:focus, .filter-bar input:focus {
+            border-color: #1a73b5;
+        }
+        .filter-bar select { min-width: 140px; cursor: pointer; }
+        .filter-bar input { flex: 1; min-width: 180px; }
+        .reset-btn {
+            padding: 10px 18px;
+            background: #e8e8e8;
+            border: none;
+            border-radius: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #555;
+            transition: background 0.2s;
+        }
+        .reset-btn:hover { background: #ddd; }
+
+        /* 통계 바 */
+        .stats-bar {
+            max-width: 1100px;
+            margin: 16px auto 0;
+            padding: 0 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .stats-bar span {
+            font-size: 13px;
+            color: #888;
+        }
+        .stats-count {
+            font-weight: 700;
+            color: #0f4c81;
+        }
+
+        /* 카드 그리드 */
+        .card-grid {
+            max-width: 1100px;
+            margin: 16px auto 40px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 16px;
+            padding: 0 4px;
+        }
+        .card {
+            background: white;
+            border-radius: 14px;
+            padding: 22px 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+            transition: transform 0.15s, box-shadow 0.15s;
+            border-left: 4px solid #1a73b5;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .card-region {
+            font-size: 18px;
+            font-weight: 700;
+            color: #0f4c81;
+        }
+        .card-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .badge-정상 { background: #e8f5e9; color: #2e7d32; }
+        .badge-링크깨짐 { background: #ffebee; color: #c62828; }
+        .badge-미확인 { background: #fff3e0; color: #e65100; }
+
+        .card-info {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .info-tag {
+            background: #f0f4f8;
+            padding: 5px 11px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #555;
+        }
+        .card-note {
+            font-size: 12px;
+            color: #999;
+            line-height: 1.5;
+        }
+        .card-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 18px;
+            background: linear-gradient(135deg, #0f4c81, #1a73b5);
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            transition: opacity 0.2s;
+            align-self: flex-start;
+        }
+        .card-link:hover { opacity: 0.85; }
+        .card-link svg { width: 14px; height: 14px; fill: white; }
+
+        /* 로딩 */
+        .loading {
+            text-align: center;
+            padding: 80px 20px;
+            color: #888;
+            font-size: 15px;
+        }
+        .spinner {
+            width: 36px; height: 36px;
+            border: 3px solid #e0e0e0;
+            border-top-color: #1a73b5;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* 빈 상태 */
+        .empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: #aaa;
+            font-size: 15px;
+            grid-column: 1 / -1;
+        }
+
+        /* 푸터 */
+        .footer {
+            text-align: center;
+            padding: 24px;
+            font-size: 12px;
+            color: #bbb;
+        }
+
+        /* 반응형 */
+        @media (max-width: 600px) {
+            .filter-bar { flex-direction: column; }
+            .filter-bar select, .filter-bar input { width: 100%; }
+            .card-grid { grid-template-columns: 1fr; }
+            .header h1 { font-size: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>지자체 데이터 통합 플랫폼</h1>
+    <p>통계연보 · 기본계획 · 기술지침 — 한 곳에서 바로 찾기</p>
+</div>
+
+<div class="filter-bar" id="filterBar">
+    <label>지역</label>
+    <select id="filterRegion"><option value="">전체</option></select>
+
+    <label>자료종류</label>
+    <select id="filterType"><option value="">전체</option></select>
+
+    <label>연도</label>
+    <select id="filterYear"><option value="">전체</option></select>
+
+    <input type="text" id="searchInput" placeholder="검색어 입력 (지역, 비고 등)">
+
+    <button class="reset-btn" onclick="resetFilters()">초기화</button>
+</div>
+
+<div class="stats-bar">
+    <span>검색 결과 <span class="stats-count" id="resultCount">0</span>건</span>
+    <span id="lastUpdate"></span>
+</div>
+
+<div class="card-grid" id="cardGrid">
+    <div class="loading">
+        <div class="spinner"></div>
+        데이터를 불러오는 중...
+    </div>
+</div>
+
+<div class="footer">
+    데이터 출처: Google Sheets 실시간 연동 · 시트에 추가하면 자동 반영
+</div>
+
+<script>
+const SHEET_ID = '1vo1VP7yRYefUjkGcmAm8XIN8VU3g6UUFeydXtTuSji4';
+const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
+
+let allData = [];
+
+// CSV 파싱
+function parseCSV(csv) {
+    const lines = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < csv.length; i++) {
+        const ch = csv[i];
+        if (ch === '"') {
+            inQuotes = !inQuotes;
+        } else if (ch === '\n' && !inQuotes) {
+            lines.push(current);
+            current = '';
+        } else {
+            current += ch;
+        }
+    }
+    if (current.trim()) lines.push(current);
+
+    const headers = parseLine(lines[0]);
+    const data = [];
+    for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        const values = parseLine(lines[i]);
+        const row = {};
+        headers.forEach((h, idx) => { row[h] = (values[idx] || '').trim(); });
+        data.push(row);
+    }
+    return data;
+}
+
+function parseLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') {
+            inQuotes = !inQuotes;
+        } else if (ch === ',' && !inQuotes) {
+            result.push(current);
+            current = '';
+        } else {
+            current += ch;
+        }
+    }
+    result.push(current);
+    return result.map(v => v.replace(/^"|"$/g, '').trim());
+}
+
+// 데이터 로드
+async function loadData() {
+    try {
+        const res = await fetch(SHEET_URL);
+        const csv = await res.text();
+        allData = parseCSV(csv);
+        buildFilters();
+        renderCards(allData);
+    } catch (e) {
+        document.getElementById('cardGrid').innerHTML =
+            '<div class="empty">데이터를 불러오지 못했습니다. 시트 공유 설정을 확인해주세요.</div>';
+    }
+}
+
+// 필터 옵션 생성
+function buildFilters() {
+    const regions = [...new Set(allData.map(d => d['지역(광역)']))].filter(Boolean).sort();
+    const types = [...new Set(allData.map(d => d['자료종류']))].filter(Boolean).sort();
+    const years = [...new Set(allData.map(d => d['발행연도']))].filter(Boolean).sort((a,b) => b - a);
+
+    fillSelect('filterRegion', regions);
+    fillSelect('filterType', types);
+    fillSelect('filterYear', years);
+}
+
+function fillSelect(id, options) {
+    const el = document.getElementById(id);
+    options.forEach(opt => {
+        const o = document.createElement('option');
+        o.value = opt;
+        o.textContent = opt;
+        el.appendChild(o);
+    });
+}
+
+// 카드 렌더링
+function renderCards(data) {
+    const grid = document.getElementById('cardGrid');
+    document.getElementById('resultCount').textContent = data.length;
+
+    if (data.length === 0) {
+        grid.innerHTML = '<div class="empty">조건에 맞는 자료가 없습니다.</div>';
+        return;
+    }
+
+    grid.innerHTML = data.map(d => {
+        const badgeClass = `badge-${d['상태'] || '미확인'}`;
+        const region = d['지역(광역)'] || '';
+        const sub = d['지역(기초)'] && d['지역(기초)'] !== '-' ? ` ${d['지역(기초)']}` : '';
+        const 회차 = d['회차'] ? `제${d['회차']}회` : '';
+
+        return `
+        <div class="card">
+            <div class="card-header">
+                <span class="card-region">${region}${sub}</span>
+                <span class="card-badge ${badgeClass}">${d['상태'] || '미확인'}</span>
+            </div>
+            <div class="card-info">
+                <span class="info-tag">${d['자료종류'] || ''}</span>
+                <span class="info-tag">${d['발행연도'] || ''}년 발행</span>
+                ${d['기준연도'] ? `<span class="info-tag">${d['기준연도']}년 기준</span>` : ''}
+                ${회차 ? `<span class="info-tag">${회차}</span>` : ''}
+                <span class="info-tag">${d['파일형태'] || ''}</span>
+            </div>
+            ${d['비고'] ? `<div class="card-note">${d['비고']}</div>` : ''}
+            <a class="card-link" href="${d['바로가기 URL'] || '#'}" target="_blank" rel="noopener">
+                <svg viewBox="0 0 24 24"><path d="M14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7zm-2 16H5V7h7V5H5a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-7h-2v7H5z"/></svg>
+                바로가기
+            </a>
+        </div>`;
+    }).join('');
+}
+
+// 필터 적용
+function applyFilters() {
+    const region = document.getElementById('filterRegion').value;
+    const type = document.getElementById('filterType').value;
+    const year = document.getElementById('filterYear').value;
+    const keyword = document.getElementById('searchInput').value.toLowerCase();
+
+    const filtered = allData.filter(d => {
+        if (region && d['지역(광역)'] !== region) return false;
+        if (type && d['자료종류'] !== type) return false;
+        if (year && d['발행연도'] !== year) return false;
+        if (keyword) {
+            const haystack = Object.values(d).join(' ').toLowerCase();
+            if (!haystack.includes(keyword)) return false;
+        }
+        return true;
+    });
+
+    renderCards(filtered);
+}
+
+function resetFilters() {
+    document.getElementById('filterRegion').value = '';
+    document.getElementById('filterType').value = '';
+    document.getElementById('filterYear').value = '';
+    document.getElementById('searchInput').value = '';
+    renderCards(allData);
+}
+
+// 이벤트 바인딩
+document.getElementById('filterRegion').addEventListener('change', applyFilters);
+document.getElementById('filterType').addEventListener('change', applyFilters);
+document.getElementById('filterYear').addEventListener('change', applyFilters);
+document.getElementById('searchInput').addEventListener('input', applyFilters);
+
+// 실행
+loadData();
+</script>
+
+</body>
+</html>
